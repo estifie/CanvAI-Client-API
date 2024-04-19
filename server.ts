@@ -4,6 +4,7 @@ import express from "express";
 import http from "http";
 import { v4 as uuidv4 } from "uuid";
 import { WebSocketServer } from "ws";
+import { processImage } from "./utils";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -44,12 +45,19 @@ wss.on("connection", (ws: any) => {
 		} else if (message.type === "predict") {
 			try {
 				const data = {
-					image_data: message.data.image_data,
+					image_data: await processImage(message.data.image_data),
 				};
 				const response = await axios.post(MODEL_API_URL + "/model/predict", data);
 
-				sendMessageToClient(clientId, { type: "predict", data: response.data });
+				sendMessageToClient(clientId, {
+					type: "predict",
+					data: {
+						prediction: response.data.prediction,
+						probability: response.data.probability,
+					},
+				});
 			} catch (error) {
+				console.log(error);
 				sendMessageToClient(clientId, { type: "error", message: "Failed to predict" });
 			}
 		}
