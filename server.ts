@@ -46,7 +46,9 @@ wss.on("connection", (ws: any) => {
 		if (message.type === "handshake") {
 			sendMessageToClient(clientId, {
 				type: "handshake",
-				message: "Successfully connected",
+				data: {
+					status: "success",
+				},
 			});
 		} else if (message.type === "predict") {
 			try {
@@ -56,8 +58,9 @@ wss.on("connection", (ws: any) => {
 				const response = await axios.post(MODEL_API_URL + "/model/predict", data);
 
 				sendMessageToClient(clientId, {
-					type: "predict",
+					type: "prediction",
 					data: {
+						status: "success",
 						prediction: response.data.prediction,
 						probability: response.data.probability,
 					},
@@ -65,7 +68,13 @@ wss.on("connection", (ws: any) => {
 			} catch (error) {
 				console.log(error);
 				logger.error(error);
-				sendMessageToClient(clientId, { type: "error", message: "Failed to predict" });
+				sendMessageToClient(clientId, {
+					type: "prediction",
+					data: {
+						status: "error",
+						message: "Failed to predict, please try again.",
+					},
+				});
 			}
 		}
 	});
