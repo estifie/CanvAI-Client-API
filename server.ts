@@ -4,13 +4,12 @@ import express from "express";
 import http from "http";
 import { v4 as uuidv4 } from "uuid";
 import winston from "winston";
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import { processImage } from "./utils";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const MODEL_API_URL = process.env.MODEL_API_URL || "http://127.0.0.1:3002";
-const clients: { [key: string]: any } = {};
 const logger = winston.createLogger({
 	level: "info",
 	format: winston.format.json(),
@@ -24,27 +23,30 @@ app.use(express.static("public"));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-const sendMessageToClient = (clientId: string, message: any) => {
-	const client = clients[clientId];
-	if (client) {
-		client.send(JSON.stringify(message));
-	}
+interface WebSocketWithId extends WebSocket {
+	id: string;
+}
+
+const sendMessageToClient = (clientId: string, message: { type: string; data: any }) => {
+	const clients = wss.clients as Set<WebSocketWithId>;
+	clients.forEach((client) => {
+		if (client.id === clientId) {
+			client.send(JSON.stringify(message));
+		}
+	});
 };
 
-wss.on("connection", (ws: any) => {
-	const clientId = uuidv4();
-	console.log(`Received connection from client ${clientId}`);
-	logger.info(`Received connection from client ${clientId}`);
+wss.on("connection", (ws: WebSocketWithId) => {
+	ws.id = uuidv4();
+	logger.info(`Received connection from client ${ws.id}`);
 
-	clients[clientId] = ws;
-	console.log(`Successfully connected with client ${clientId}`);
-	logger.info(`Successfully connected with client ${clientId}`);
+	logger.info(`Successfully connected with client ${ws.id}`);
 
 	ws.on("message", async (message: any) => {
 		message = JSON.parse(message);
 
 		if (message.type === "handshake") {
-			sendMessageToClient(clientId, {
+			sendMessageToClient(ws.id, {
 				type: "handshake",
 				data: {
 					status: "success",
@@ -57,7 +59,7 @@ wss.on("connection", (ws: any) => {
 				};
 				const response = await axios.post(MODEL_API_URL + "/model/predict", data);
 
-				sendMessageToClient(clientId, {
+				sendMessageToClient(ws.id, {
 					type: "prediction",
 					data: {
 						status: "success",
@@ -66,9 +68,8 @@ wss.on("connection", (ws: any) => {
 					},
 				});
 			} catch (error) {
-				console.log(error);
 				logger.error(error);
-				sendMessageToClient(clientId, {
+				sendMessageToClient(ws.id, {
 					type: "prediction",
 					data: {
 						status: "error",
@@ -80,7 +81,7 @@ wss.on("connection", (ws: any) => {
 	});
 
 	ws.on("close", () => {
-		logger.info(`${clientId} disconnected`);
+		logger.info(`${ws.id} disconnected`);
 	});
 });
 
