@@ -201,6 +201,43 @@ API is used to send requests to the CanvAI Core API for AI prediction. The messa
    }
    ```
 
+4. **`highscores`** - This message type is used to get the highscores of the game.
+
+   #### Example Message
+
+   ```json
+   {
+   	"type": "highscores"
+   }
+   ```
+
+   #### Example Response
+
+   ```json
+   {
+   	"type": "highscores",
+   	"data": {
+   		"highscores": [
+   			{
+   				"username": "user1",
+   				"score": 61,
+   				"date": "2024-04-01T12:00:00.000Z"
+   			},
+   			{
+   				"username": "user2",
+   				"score": 60,
+   				"date": "2024-04-01T12:00:00.000Z"
+   			},
+   			{
+   				"username": "user2",
+   				"score": 60,
+   				"date": "2024-04-01T12:00:00.000Z"
+   			}
+   		]
+   	}
+   }
+   ```
+
 ### Response Types
 
 #### Example Finish Response
