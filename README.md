@@ -83,16 +83,15 @@ API is used to send requests to the CanvAI Core API for AI prediction. The messa
    }
    ```
 
-1. **`predict`** - This message type is used to send the image data to the CanvAI Core API for prediction. The data
-   should contain the base64 encoded image data.
+2. **`start`** - This message type is used to initialize the game. Duration is the time in seconds for which the game will run.
 
    #### Example Message
 
    ```json
    {
-   	"type": "predict",
+   	"type": "start",
    	"data": {
-   		"image_data": "base64_encoded_image"
+   		"duration": 60
    	}
    }
    ```
@@ -101,14 +100,96 @@ API is used to send requests to the CanvAI Core API for AI prediction. The messa
 
    ```json
    {
-   	"type": "prediction",
+   	"type": "start",
    	"data": {
-   		"status": "success",
-   		"prediction": "airplane",
-   		"probability": 0.99
+   		"image": "bed",
+   		"message": "Game started! You have 60 seconds to draw the bed.",
+   		"startEpoch": 1717229928515
    	}
    }
    ```
+
+   #### Example Error Response
+
+   ```json
+   {
+   	"type": "start",
+   	"data": {
+   		"status": "error",
+   		"message": "Game already in progress"
+   	}
+   }
+   ```
+
+3. **`prediction`** - This message type is used to send the image data to the CanvAI Core API for prediction. The data
+   should contain the base64 encoded image data.
+
+   #### Example Message
+
+   ```json
+   {
+   	"type": "prediction",
+   	"data": {
+   		"image_data": "base64_encoded_image"
+   	}
+   }
+   ```
+
+   ### Example Error Response
+
+   If the game is started, the server will respond with an error message if the prediction is made after the game ends.
+
+   ```json
+   {
+   	"type": "prediction",
+   	"data": {
+   		"status": "error",
+   		"message": "Game not started yet"
+   	}
+   }
+   ```
+
+   #### Example Responses
+
+   The server can respond with true prediction message or false prediction message. The false prediction message is sent
+   when the prediction is not successful. Here are the examples of both responses:
+
+   ##### False Prediction Response
+
+   The drawing is classified as `bucket` but the game wanted user to draw something else.
+
+   ```json
+   {
+   	"type": "prediction",
+   	"data": {
+   		"status": "success",
+   		"prediction": "bucket",
+   		"probability": 1,
+   		"isPredicted": false
+   	}
+   }
+   ```
+
+   ##### True Prediction Response
+
+   The drawing is classified as `bucket` and the game wanted user to draw the same.
+
+   ```json
+   {
+   	"type": "prediction",
+   	"data": {
+   		"status": "success",
+   		"prediction": "bucket",
+   		"probability": 1,
+   		"isPredicted": true,
+   		"timeTaken": 4403,
+   		"gainedScore": 61,
+   		"nextImage": "book"
+   	}
+   }
+   ```
+
+   ##### Example Error Response
 
    ```json
    {
@@ -119,3 +200,19 @@ API is used to send requests to the CanvAI Core API for AI prediction. The messa
    	}
    }
    ```
+
+### Response Types
+
+#### Example Finish Response
+
+This response is not sent after a request, but it is sent after the game ends. It contains the final score of the user.
+
+```json
+{
+	"type": "finish",
+	"data": {
+		"message": "Game finished!",
+		"score": 61
+	}
+}
+```
