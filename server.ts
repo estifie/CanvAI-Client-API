@@ -1,82 +1,56 @@
 import axios from "axios";
-import dotenv from "dotenv";
 import express from "express";
 import http from "http";
 import { v4 as uuidv4 } from "uuid";
-import winston from "winston";
 import { WebSocket, WebSocketServer } from "ws";
-import { processImage } from "./utils";
-dotenv.config();
-
-const PORT = process.env.PORT || 3000;
-const MODEL_API_URL = process.env.MODEL_API_URL || "http://127.0.0.1:3002";
-const logger = winston.createLogger({
-	level: "info",
-	format: winston.format.json(),
-	transports: [new winston.transports.Console()],
-});
+import { MODEL_API_URL, PORT } from "./config";
+import WebSocketHandler from "./handlers";
+import { logger } from "./logger";
+import { GameStatus } from "./types";
+import { getRandomImage, processImage } from "./utils";
+import { Socket, WebSocketWithId } from "./websocket";
 
 const app = express();
 
-app.use(express.static("public"));
-
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
 
-interface WebSocketWithId extends WebSocket {
-	id: string;
-}
+const socket = new Socket(server);
 
-const sendMessageToClient = (clientId: string, message: { type: string; data: any }) => {
-	const clients = wss.clients as Set<WebSocketWithId>;
-	clients.forEach((client) => {
-		if (client.id === clientId) {
-			client.send(JSON.stringify(message));
-		}
-	});
-};
+socket.wss.on("connection", (ws: WebSocketWithId) => {
+	const client = new WebSocketHandler(ws);
+	const connection = client.client;
 
-wss.on("connection", (ws: WebSocketWithId) => {
-	ws.id = uuidv4();
-	logger.info(`Received connection from client ${ws.id}`);
-
-	logger.info(`Successfully connected with client ${ws.id}`);
+	logger.info(`Received connection from client ${connection.id}`);
+	logger.info(`Successfully connected with client ${connection.id}`);
 
 	ws.on("message", async (message: any) => {
-		message = JSON.parse(message);
+		try {
+			message = JSON.parse(message);
+			logger.info(`Received message from client ${connection.id}: ${message.type}`);
 
-		if (message.type === "handshake") {
-			sendMessageToClient(ws.id, {
-				type: "handshake",
+			switch (message.type) {
+				case "handshake":
+					client.handleHandsake();
+					break;
+				case "start":
+					client.handleStart(message);
+					break;
+				case "prediction":
+					client.handlePrediction(message);
+					break;
+				default:
+					logger.warn("Invalid message type");
+			}
+		} catch (error) {
+			client.sendMessage({
+				type: "error",
 				data: {
-					status: "success",
+					message: "Failed to parse message",
 				},
 			});
-		} else if (message.type === "predict") {
-			try {
-				const data = {
-					image_data: await processImage(message.data.image_data),
-				};
-				const response = await axios.post(MODEL_API_URL + "/model/predict", data);
 
-				sendMessageToClient(ws.id, {
-					type: "prediction",
-					data: {
-						status: "success",
-						prediction: response.data.prediction,
-						probability: response.data.probability,
-					},
-				});
-			} catch (error) {
-				logger.error(error);
-				sendMessageToClient(ws.id, {
-					type: "prediction",
-					data: {
-						status: "error",
-						message: "Failed to predict, please try again.",
-					},
-				});
-			}
+			logger.error("Failed to parse message");
+			return;
 		}
 	});
 

@@ -1,13 +1,23 @@
 import sharp from "sharp";
+import { IMAGES } from "./constants";
 
-const processImage = async (image_data: string) => {
-	const buffer = Buffer.from(image_data, "base64");
+export const processImage = async (image_data: string) => {
+	try {
+		image_data = image_data.replace(/^data:image\/png;base64,/, "");
 
-	const processedImage = await sharp(buffer).resize(28, 28).greyscale().threshold(50).toBuffer();
+		const buffer = Buffer.from(image_data, "base64");
 
-	const processedImageBase64 = processedImage.toString("base64");
+		const processedImage = await sharp(buffer).resize(28, 28).greyscale().threshold(50).toBuffer();
 
-	return processedImageBase64;
+		const processedImageBase64 = processedImage.toString("base64");
+
+		return processedImageBase64;
+	} catch (error) {
+		return null;
+	}
 };
 
-export { processImage };
+export const getRandomImage = () => {
+	const randomIndex = ~~(Math.random() * IMAGES.length);
+	return IMAGES[randomIndex];
+};
