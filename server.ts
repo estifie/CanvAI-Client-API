@@ -1,9 +1,10 @@
 import axios from "axios";
 import express from "express";
 import http from "http";
+import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { WebSocket, WebSocketServer } from "ws";
-import { MODEL_API_URL, PORT } from "./config";
+import { MODEL_API_URL, MONGODB_CONNECTION_STRING, PORT } from "./config";
 import WebSocketHandler from "./handlers";
 import { logger } from "./logger";
 import { GameStatus } from "./types";
@@ -11,6 +12,15 @@ import { getRandomImage, processImage } from "./utils";
 import { Socket, WebSocketWithId } from "./websocket";
 
 const app = express();
+
+mongoose
+	.connect(MONGODB_CONNECTION_STRING)
+	.then(() => {
+		logger.info("Connected to MongoDB");
+	})
+	.catch((error) => {
+		logger.error("Error connecting to MongoDB: " + error.message);
+	});
 
 const server = http.createServer(app);
 
@@ -37,6 +47,9 @@ socket.wss.on("connection", (ws: WebSocketWithId) => {
 					break;
 				case "prediction":
 					client.handlePrediction(message);
+					break;
+				case "highscores":
+					client.handleRetrieveHighscores();
 					break;
 				default:
 					logger.warn("Invalid message type");
