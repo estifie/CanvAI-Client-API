@@ -141,7 +141,6 @@ export default class WebSocketHandler {
 				this.client.score += gainedScore;
 
 				isPredicted = true;
-				this.client.status = GameStatus.NOT_STARTED;
 
 				// Next image
 				this.client.imageToDraw = getRandomImage();
