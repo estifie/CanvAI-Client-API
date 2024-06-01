@@ -2,6 +2,7 @@ import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { MODEL_API_URL } from "./config";
 import { logger } from "./logger";
+import { default as Score, default as ScoreModel } from "./models/score.model";
 import { GameStatus } from "./types";
 import { getRandomImage, processImage } from "./utils";
 import { WebSocketWithId } from "./websocket";
@@ -76,6 +77,12 @@ export default class WebSocketHandler {
 
 	handleFinish = () => {
 		this.client.status = GameStatus.NOT_STARTED;
+
+		Score.create({
+			score: this.client.score,
+			date: new Date().toISOString(),
+			username: "Guest",
+		});
 
 		this.sendMessage({
 			type: "finish",
@@ -166,9 +173,33 @@ export default class WebSocketHandler {
 		}
 	};
 
+	handleRetrieveHighscores = async () => {
+		try {
+			const highscores = await Score.find().sort({ score: -1 }).limit(10);
+
+			this.sendMessage({
+				type: "highscores",
+				data: {
+					status: "success",
+					highscores: highscores,
+				},
+			});
+		} catch (error) {
+			logger.error(error);
+
+			this.sendMessage({
+				type: "highscores",
+				data: {
+					status: "error",
+					message: "Failed to retrieve highscores",
+				},
+			});
+		}
+	};
+
 	private calculateScore = (timeTaken: number): number => {
 		const initialScore = 5000;
-		const k = 0.001;
+		const k = 0.0005;
 		const score = initialScore * Math.exp(-k * timeTaken);
 
 		return Math.max(1, Math.floor(score));
