@@ -7,11 +7,16 @@ import { WebSocket, WebSocketServer } from "ws";
 import { MODEL_API_URL, MONGODB_CONNECTION_STRING, PORT } from "./config";
 import WebSocketHandler from "./handlers";
 import { logger } from "./logger";
+import leaderboardRouter from "./routes/leaderboard.route";
 import { GameStatus } from "./types";
 import { getRandomImage, processImage } from "./utils";
 import { Socket, WebSocketWithId } from "./websocket";
 
 const app = express();
+
+app.use(express.json());
+
+app.use("/leaderboard", leaderboardRouter);
 
 mongoose
 	.connect(MONGODB_CONNECTION_STRING)
