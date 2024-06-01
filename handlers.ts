@@ -63,6 +63,8 @@ export default class WebSocketHandler {
 				this.handleFinish();
 			}, this.client.duration * 1000);
 		} catch (error) {
+			this.client.status = GameStatus.NOT_STARTED;
+
 			logger.error(error);
 
 			this.sendMessage({
