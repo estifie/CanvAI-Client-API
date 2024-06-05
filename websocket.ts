@@ -11,6 +11,7 @@ export interface WebSocketWithId extends WebSocket {
 	duration: number;
 	score: number;
 	curentDrawingTimeStart: number;
+	count: number;
 }
 
 export class Socket {

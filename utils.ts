@@ -1,3 +1,4 @@
+import fs from "fs";
 import sharp from "sharp";
 import { IMAGES } from "./constants";
 
@@ -11,13 +12,20 @@ export const processImage = async (image_data: string) => {
 
 		const processedImageBase64 = processedImage.toString("base64");
 
+		// Save the processed image to a file
+		fs.writeFileSync("processed.png", processedImage);
+
 		return processedImageBase64;
 	} catch (error) {
 		return null;
 	}
 };
 
-export const getRandomImage = () => {
+export const getRandomImage = (count: number) => {
+	if (count < IMAGES.length) {
+		return IMAGES[count];
+	}
+
 	const randomIndex = ~~(Math.random() * IMAGES.length);
 	return IMAGES[randomIndex];
 };

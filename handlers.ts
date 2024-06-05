@@ -16,6 +16,7 @@ export default class WebSocketHandler {
 		this.client.status = GameStatus.NOT_STARTED;
 		this.client.score = 0;
 		this.client.curentDrawingTimeStart = 0;
+		this.client.count = 0;
 	}
 
 	sendMessage = (message: any) => {
@@ -45,7 +46,7 @@ export default class WebSocketHandler {
 			}
 
 			this.client.status = GameStatus.IN_PROGRESS;
-			this.client.imageToDraw = getRandomImage();
+			this.client.imageToDraw = getRandomImage(this.client.count);
 			this.client.startEpoch = Date.now();
 			this.client.duration = message.data.duration;
 			this.client.curentDrawingTimeStart = Date.now();
@@ -131,9 +132,43 @@ export default class WebSocketHandler {
 			let timeTaken = 0;
 			let gainedScore = 0;
 
+			if (message.data.image_data === "skip") {
+				this.client.count++;
+				console.log("Skipping image");
+				this.client.imageToDraw = getRandomImage(this.client.count);
+				this.client.curentDrawingTimeStart = Date.now();
+				this.sendMessage({
+					type: "prediction",
+					data: {
+						status: "success",
+						prediction: "Skipped! Next image is ready to be drawn.",
+						probability: 1,
+						nextImage: this.client.imageToDraw,
+						isPredicted: true,
+						gainedScore: 0,
+						timeTaken: 0,
+					},
+				});
+				return;
+			} else if (message.data.image_data === "empty") {
+				this.sendMessage({
+					type: "prediction",
+					data: {
+						status: "success",
+						prediction: "Waiting for the image to be drawn...",
+						probability: 1,
+						nextImage: this.client.imageToDraw,
+						isPredicted: false,
+						gainedScore: 0,
+					},
+				});
+				return;
+			}
+
 			const data = {
 				image_data: await processImage(message.data.image_data),
 			};
+
 			const response = await axios.post(MODEL_API_URL + "/model/predict", data);
 
 			if (response.data.data.prediction === this.client.imageToDraw) {
@@ -145,7 +180,8 @@ export default class WebSocketHandler {
 				isPredicted = true;
 
 				// Next image
-				this.client.imageToDraw = getRandomImage();
+				this.client.count++;
+				this.client.imageToDraw = getRandomImage(this.client.count);
 				this.client.curentDrawingTimeStart = Date.now();
 			}
 
