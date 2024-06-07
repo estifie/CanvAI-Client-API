@@ -1,1 +1,1 @@
-export const IMAGES = ["apple", "bicycle", "broom", "campfire", "candle", "car", "chair", "snake", "star", "tree"];
+export const IMAGES = ["apple", "bicycle", "candle", "car", "cloud", "star", "tree", "campfire", "chair", "broom"];
