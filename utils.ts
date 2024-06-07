@@ -8,7 +8,15 @@ export const processImage = async (image_data: string) => {
 
 		const buffer = Buffer.from(image_data, "base64");
 
-		const processedImage = await sharp(buffer).resize(28, 28).greyscale().threshold(50).toBuffer();
+		const processedImage = await sharp(buffer)
+			.resize(28, 28)
+			.modulate({
+				brightness: 2,
+				saturation: 1,
+				hue: 0,
+			})
+			.greyscale()
+			.toBuffer();
 
 		const processedImageBase64 = processedImage.toString("base64");
 
