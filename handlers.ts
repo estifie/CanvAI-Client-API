@@ -141,7 +141,7 @@ export default class WebSocketHandler {
 					type: "prediction",
 					data: {
 						status: "success",
-						prediction: "Skipped! Next image is ready to be drawn.",
+						prediction: "skipped",
 						probability: 1,
 						nextImage: this.client.imageToDraw,
 						isPredicted: true,
@@ -155,7 +155,7 @@ export default class WebSocketHandler {
 					type: "prediction",
 					data: {
 						status: "success",
-						prediction: "Waiting for the image to be drawn...",
+						prediction: "empty",
 						probability: 1,
 						nextImage: this.client.imageToDraw,
 						isPredicted: false,
